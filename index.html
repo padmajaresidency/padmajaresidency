@@ -1,74 +1,254 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Flat Details</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Data Storage</title>
     <style>
-        body { font-family: Arial; padding: 20px; }
-        input { padding: 8px; margin: 5px; }
-        button { padding: 8px 12px; }
-        table { border-collapse: collapse; margin-top: 20px; width: 50%; }
-        th, td { border: 1px solid black; padding: 10px; text-align: center; }
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        textarea {
+            height: 150px;
+            resize: vertical;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn-save {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-load {
+            background: #2196F3;
+            color: white;
+        }
+        .btn-clear {
+            background: #ff5722;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            display: block;
+        }
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            display: block;
+        }
+        .share-link {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            word-break: break-all;
+        }
+        .share-link input {
+            margin-bottom: 10px;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
+    <h1>📦 My Data Storage</h1>
+    
+    <div class="container">
+        <div class="instructions">
+            <strong>How to use:</strong> Enter a unique key name, add your data, and click Save. 
+            Share the URL with anyone to let them access the same data!
+        </div>
 
-<h2>Flat Details Entry</h2>
+        <label for="dataKey">Data Key (unique name for your data):</label>
+        <input type="text" id="dataKey" placeholder="e.g., my-notes, shopping-list, project-data">
 
-<input type="text" id="flat" placeholder="Flat Number">
-<input type="text" id="owner" placeholder="Owner Name">
-<button onclick="saveData()">Save</button>
+        <label for="dataContent">Your Data:</label>
+        <textarea id="dataContent" placeholder="Enter any text, JSON, notes, or data you want to save..."></textarea>
 
-<table>
-    <thead>
-        <tr>
-            <th>Flat Number</th>
-            <th>Owner Name</th>
-        </tr>
-    </thead>
-    <tbody id="tableData"></tbody>
-</table>
+        <button class="btn btn-save" onclick="saveData()">💾 Save Data</button>
+        <button class="btn btn-load" onclick="loadData()">📥 Load Data</button>
+        <button class="btn btn-clear" onclick="clearFields()">🗑️ Clear</button>
 
-<script>
-function saveData() {
-    let flat = document.getElementById("flat").value.toUpperCase();
-    let owner = document.getElementById("owner").value.toUpperCase();
+        <div id="status" class="status"></div>
+        
+        <div id="shareSection" class="share-link" style="display:none;">
+            <strong>🔗 Share this link:</strong>
+            <input type="text" id="shareUrl" readonly onclick="this.select()">
+            <button class="btn btn-load" onclick="copyLink()">📋 Copy Link</button>
+        </div>
+    </div>
 
-    if (!flat || !owner) {
-        alert("Enter all details");
-        return;
-    }
+    <script>
+        // Using MantleDB - free, no signup required
+        const API_BASE = '[mantledb.sh](https://mantledb.sh/v2)';
+        const NAMESPACE = 'public-storage-' + Math.random().toString(36).substr(2, 6);
+        
+        // Check URL for shared data key
+        window.onload = function() {
+            const params = new URLSearchParams(window.location.search);
+            const sharedKey = params.get('key');
+            const sharedNs = params.get('ns');
+            
+            if (sharedKey && sharedNs) {
+                document.getElementById('dataKey').value = sharedKey;
+                loadSharedData(sharedNs, sharedKey);
+            }
+        };
 
-    let data = JSON.parse(localStorage.getItem("flats")) || [];
-    data.push({flat, owner});
+        async function saveData() {
+            const key = document.getElementById('dataKey').value.trim();
+            const content = document.getElementById('dataContent').value;
+            
+            if (!key) {
+                showStatus('Please enter a data key name', 'error');
+                return;
+            }
 
-    // Sort ascending
-    data.sort((a, b) => a.flat.localeCompare(b.flat));
+            try {
+                // Create a unique namespace based on the key for easy sharing
+                const ns = 'shared-data-' + key.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                
+                const response = await fetch(`${API_BASE}/${ns}/data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        content: content,
+                        savedAt: new Date().toISOString()
+                    })
+                });
 
-    localStorage.setItem("flats", JSON.stringify(data));
+                if (response.ok) {
+                    showStatus('✅ Data saved successfully!', 'success');
+                    showShareLink(ns, key);
+                } else {
+                    throw new Error('Failed to save');
+                }
+            } catch (error) {
+                showStatus('❌ Error saving data: ' + error.message, 'error');
+            }
+        }
 
-    loadData();
+        async function loadData() {
+            const key = document.getElementById('dataKey').value.trim();
+            
+            if (!key) {
+                showStatus('Please enter a data key name to load', 'error');
+                return;
+            }
 
-    document.getElementById("flat").value = "";
-    document.getElementById("owner").value = "";
-}
+            const ns = 'shared-data-' + key.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            await loadSharedData(ns, key);
+        }
 
-function loadData() {
-    let data = JSON.parse(localStorage.getItem("flats")) || [];
-    let table = document.getElementById("tableData");
-    table.innerHTML = "";
+        async function loadSharedData(ns, key) {
+            try {
+                const response = await fetch(`${API_BASE}/${ns}/data`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('dataContent').value = data.content || '';
+                    showStatus(`✅ Data loaded! (Last saved: ${new Date(data.savedAt).toLocaleString()})`, 'success');
+                    showShareLink(ns, key);
+                } else if (response.status === 404) {
+                    showStatus('ℹ️ No data found for this key. Save something first!', 'error');
+                } else {
+                    throw new Error('Failed to load');
+                }
+            } catch (error) {
+                if (error.message.includes('Failed to load')) {
+                    showStatus('❌ Error loading data', 'error');
+                } else {
+                    showStatus('ℹ️ No data found for this key yet', 'error');
+                }
+            }
+        }
 
-    data.forEach(item => {
-        let row = `<tr>
-            <td>${item.flat}</td>
-            <td>${item.owner}</td>
-        </tr>`;
-        table.innerHTML += row;
-    });
-}
+        function showShareLink(ns, key) {
+            const shareUrl = `${window.location.origin}${window.location.pathname}?ns=${ns}&key=${encodeURIComponent(key)}`;
+            document.getElementById('shareUrl').value = shareUrl;
+            document.getElementById('shareSection').style.display = 'block';
+        }
 
-// Load data on page open
-loadData();
-</script>
+        function copyLink() {
+            const shareUrl = document.getElementById('shareUrl');
+            shareUrl.select();
+            document.execCommand('copy');
+            showStatus('📋 Link copied to clipboard!', 'success');
+        }
 
+        function clearFields() {
+            document.getElementById('dataKey').value = '';
+            document.getElementById('dataContent').value = '';
+            document.getElementById('status').className = 'status';
+            document.getElementById('shareSection').style.display = 'none';
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+        }
+    </script>
 </body>
 </html>
