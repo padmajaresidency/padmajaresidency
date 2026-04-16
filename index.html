@@ -1,34 +1,155 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Apartment Management</title>
+  <title>Ower Details</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
-    body { font-family: Arial; padding: 20px; }
-    input, button { margin: 5px; padding: 8px; }
-    table { border-collapse: collapse; margin-top: 20px; }
-    td, th { border: 1px solid black; padding: 8px; }
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f4f6f9;
+    }
+
+    header {
+      background: #1E88E5;
+      color: white;
+      text-align: center;
+      padding: 15px;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 10px;
+    }
+
+    .card {
+      background: #fff;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .form-grid input {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      outline: none;
+    }
+
+    .form-grid input:focus {
+      border-color: #1E88E5;
+      box-shadow: 0 0 5px rgba(30, 136, 229, 0.3);
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #1E88E5;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    button:hover {
+      background: #1565C0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    th {
+      background: #1E88E5;
+      color: white;
+      padding: 12px;
+    }
+
+    td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+
+    tr:hover {
+      background: #f1f1f1;
+    }
+
+    .print-btn {
+      background: #FF9800;
+      margin-top: 15px;
+    }
+
+    .print-btn:hover {
+      background: #EF6C00;
+    }
+
+    @media (max-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 
 <body>
 
-<h2>Flat Entry</h2>
+<header>Owner Details</header>
 
-<input id="flat" placeholder="Flat Number">
-<input id="owner" placeholder="Owner Name">
-<input id="phone" placeholder="Phone">
-<input id="notes" placeholder="Notes">
+<div class="container">
 
-<button onclick="submitData()">Submit</button>
+  <div class="card">
+    <h2>Entry your flat details</h2>
 
-<h2>All Data</h2>
-<table id="table">
-<tr>
-<th>Flat</th><th>Owner</th><th>Phone</th><th>Notes</th>
-</tr>
-</table>
+    <div class="form-grid">
+      <input id="flat" placeholder="Flat Number">
+      <input id="owner" placeholder="Owner Name">
+      <input id="phone" placeholder="Phone">
+      <input id="notes" placeholder="Notes">
+    </div>
 
-<button onclick="window.print()">Download PDF</button>
+    <button onclick="submitData()">Submit</button>
+  </div>
+
+  <div class="card">
+    <h2>All Data</h2>
+
+    <table id="table">
+      <tr>
+        <th>Flat</th><th>Owner</th><th>Phone</th><th>Notes</th>
+      </tr>
+    </table>
+
+    <button class="print-btn" onclick="window.print()">Download PDF</button>
+  </div>
+
+</div>
 
 <script>
 const scriptURL = "https://script.google.com/macros/s/AKfycbyQ1LmLzeAYS85xzamIdWC1rU0Io9K6eryOnhg07BSsdPZ73xoX769Upd1OGhW3LzQ7/exec";
@@ -40,13 +161,11 @@ function loadData() {
     .then(data => {
       const table = document.getElementById("table");
 
-      // Clear old rows except header
       table.innerHTML = `
       <tr>
         <th>Flat</th><th>Owner</th><th>Phone</th><th>Notes</th>
       </tr>`;
 
-      // Skip header row from sheet
       for (let i = 1; i < data.length; i++) {
         let row = `<tr>
           <td>${data[i][0]}</td>
@@ -62,8 +181,8 @@ function loadData() {
 // SUBMIT DATA
 function submitData() {
   const data = {
-    flat: document.getElementById("flat").value,
-    owner: document.getElementById("owner").value,
+    flat: document.getElementById("flat").value.toUpperCase(),
+    owner: document.getElementById("owner").value.toUpperCase(),
     phone: document.getElementById("phone").value,
     notes: document.getElementById("notes").value
   };
@@ -74,12 +193,11 @@ function submitData() {
   })
   .then(res => {
     alert("Saved successfully!");
-    loadData(); // refresh table
+    loadData();
   })
   .catch(err => alert("Error"));
 }
 
-// Load data on page open
 window.onload = loadData;
 </script>
 
